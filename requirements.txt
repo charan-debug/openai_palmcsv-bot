@@ -1,0 +1,12 @@
+langchain
+langchain_experimental
+openai
+streamlit
+tabulate
+pandas
+numpy
+scikit-learn
+pandasai
+pyyaml
+google-generativeai
+openpyxl
