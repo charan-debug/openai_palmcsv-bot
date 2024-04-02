@@ -7,7 +7,6 @@ from langchain.llms.openai import OpenAI
 from langchain_experimental.agents import create_csv_agent
 from langchain.agents.agent_types import AgentType
 import os
-import time
 
 # Function to create SmartDataframe and get response
 def smart_dataframe_function(data_file, user_query):
@@ -41,30 +40,35 @@ def main():
     # File uploader for dataset
     uploaded_file = st.file_uploader("Upload dataset file", type=['csv', 'xlsx'])
 
-    # Check if dataset file is uploaded
+    # Check if dataset file is uploaded and contains data
     if uploaded_file is not None:
-        # Ask a question to be answered by both OpenAI and SmartDataframe
-        user_query = st.text_input("Ask a question:")
+        # Read the uploaded file into a DataFrame
+        df = pd.read_csv(uploaded_file)
 
-        # Check if user has asked a question
-        if user_query:
-            # Display the response from SmartDataframe
-            if google_api_key:
-                response_smart = smart_dataframe_function(uploaded_file, user_query)
-                st.write("Response from SmartDataframe:")
-                st.write(response_smart)
-            else:
-                st.write("Please provide your Google API key to use SmartDataframe.")
+        # Check if the DataFrame is not empty
+        if not df.empty:
+            # Ask a question to be answered by both OpenAI and SmartDataframe
+            user_query = st.text_input("Ask a question:")
 
-            # Display the response from OpenAI
-            if openai_api_key:
-                response_openai = openai_function(uploaded_file, user_query)
-                st.write("Answer from OpenAI:")
-                st.write(response_openai)
-            else:
-                st.write("Please provide your OpenAI API key to use OpenAI.")
+            # Check if user has asked a question
+            if user_query:
+                # Display the response from SmartDataframe
+                if google_api_key:
+                    response_smart = smart_dataframe_function(io.StringIO(uploaded_file.getvalue().decode("utf-8")), user_query)
+                    st.write("Response from SmartDataframe:")
+                    st.write(response_smart)
+                else:
+                    st.write("Please provide your Google API key to use SmartDataframe.")
+
+                # Display the response from OpenAI
+                if openai_api_key:
+                    response_openai = openai_function(io.StringIO(uploaded_file.getvalue().decode("utf-8")), user_query)
+                    st.write("Answer from OpenAI:")
+                    st.write(response_openai)
+                else:
+                    st.write("Please provide your OpenAI API key to use OpenAI.")
         else:
-            st.write("Please ask a question to get a response.")
+            st.write("The uploaded file is empty. Please upload a file with data.")
 
 # Run the Streamlit app
 if __name__ == "__main__":
