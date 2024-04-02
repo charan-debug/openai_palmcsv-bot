@@ -9,19 +9,46 @@ from langchain.agents.agent_types import AgentType
 import os
 import time
 
+# Define the SmartDataframe function
+def smart_dataframe_function(df, user_query):
+    # Load the Google Palm model
+    llm = GooglePalm(api_key="your_google_api_key_here")
+    # Initialize SmartDataframe with the provided data
+    smart_df = SmartDataframe(df, config={"llm": llm})
+    # Use SmartDataframe to get the response
+    response_smart = smart_df.chat(user_query)
+    return response_smart
+
+# Define the OpenAI function
+def openai_function(df, user_query):
+    # Set OpenAI API key
+    os.environ['OPENAI_API_KEY'] = "your_openai_api_key_here"
+    # Load OpenAI model
+    llm = OpenAI(temperature=0)
+    # Create OpenAI agent
+    agent = create_csv_agent(
+        llm,
+        df,
+        verbose=False,
+        agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    )
+    # Use OpenAI agent to get the response
+    answer_openai = agent.run(user_query)
+    return answer_openai
+
 # Define the Streamlit app
 def main():
     st.title("PALM and OPEN AI CSV/EXCEL CHATBOT")
-    
+
     # Create input field for Google API key
     google_api_key = st.text_input("Enter your Google API key:")
-    
+
     # Create input field for OpenAI API key
     openai_api_key = st.text_input("Enter your OpenAI API key", type="password")
-    
+
     # Create file uploader component for dataset
     uploaded_file = st.file_uploader("Upload dataset file", type=['csv', 'xlsx'])
-    
+
     # Check if dataset file is uploaded
     if uploaded_file is not None:
         # Load the dataset into a DataFrame
@@ -32,51 +59,20 @@ def main():
         else: # CSV file
             # Load data into a DataFrame
             df = pd.read_csv(uploaded_file)
-        
-        # Check if Google API key is provided
-        if google_api_key:
-            # Load the Google Palm model with the provided API key
-            llm = GooglePalm(api_key=google_api_key)
+
+        # Ask a question to be answered by both OpenAI and SmartDataframe
+        user_query = st.text_input("Ask a question:")
+
+        # Check if user has asked a question
+        if user_query:
+            # Display the response from SmartDataframe
+            st.write("Response from SmartDataframe:")
+            st.write(smart_dataframe_function(df, user_query))
             
-            # Initialize SmartDataframe with the uploaded data
-            smart_df = SmartDataframe(df, config={"llm": llm})
-            
-            # Create an input text box for user query for SmartDataframe
-            user_query_smart = st.text_input("Enter your question for SmartDataframe:")
-            
-            # Check if the user has entered a query for SmartDataframe
-            if user_query_smart:
-                # Use the SmartDataframe to get the response
-                response_smart = smart_df.chat(user_query_smart)
-                
-                # Display the response for SmartDataframe
-                st.write("Response from SmartDataframe:")
-                st.write(response_smart)
-        
-        # Check if OpenAI API key is provided
-        if openai_api_key:
-            os.environ['OPENAI_API_KEY'] = openai_api_key
-            llm = OpenAI(temperature=0)
-            agent = create_csv_agent(
-                llm,
-                df,
-                verbose=False,
-                agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            )
-            
-            # Create an input text box for user query for OpenAI
-            user_query_openai = st.text_input("Enter your question for OpenAI:")
-            
-            # Check if the user has entered a query for OpenAI
-            if user_query_openai:
-                # Use the OpenAI agent to get the response
-                answer_openai = agent.run(user_query_openai)
-                
-                # Display the response for OpenAI
-                st.write("Answer from OpenAI:")
-                st.write(answer_openai)
+            # Display the response from OpenAI
+            st.write("Answer from OpenAI:")
+            st.write(openai_function(df, user_query))
 
 # Run the Streamlit app
 if __name__ == "__main__":
     main()
-
